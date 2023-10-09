@@ -48,4 +48,4 @@ def signin(request):
     return render(request, "authentication/signin.html")
 
 def signout(request):
-    pass
+    passgit 
