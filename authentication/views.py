@@ -1,3 +1,4 @@
+from email.message import EmailMessage
 from django.shortcuts import redirect, render
 from django.http import HttpResponse
 from django.contrib.auth.models import User
@@ -64,13 +65,13 @@ def signup(request):
 
         current_site = get_current_site(request)
         email_subject = "Confirm your email @Django - Authentication"
-        message2 = render_to_string('email_confirmation.html'),{
+        message2 = render_to_string('email_confirmation.html',{
             'name': myuser.first_name,
             'domain': current_site.domain,
             'uid': urlsafe_base64_encode(force_bytes(myuser.pk)),
             'token': generate_token.make_token(myuser)
-        }
-        email EmailMessage(
+        })
+        email = EmailMessage(
             email_subject,
             message2,
             settings.EMAIL_HOST_USER,
@@ -109,4 +110,15 @@ def signout(request):
 
 def activate(request, uidb64, token):
     try:
-        uid = force_text(urlsafe_base64_decode)
+        uid = force_text(urlsafe_base64_decode(uidb64)) 
+        myuser = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        myuser = None
+
+    if myuser is not None and generate_token.check_token(myuser, token):
+        myuser.is_active = True
+        myuser.save()
+        login(request, myuser)
+        return redirect('home')
+    else:
+        return render(request, 'activation_failed.html')
